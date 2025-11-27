@@ -1,8 +1,10 @@
 package ch.makery.address;
 
 import ch.makery.address.model.Person;
+import ch.makery.address.util.FileUtil;
 import ch.makery.address.view.PersonEditDialogController;
 import ch.makery.address.view.PersonOverviewController;
+import ch.makery.address.view.RootLayoutController;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -14,13 +16,16 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.scene.image.Image;
 
-import java.awt.*;
+import java.io.File;
 import java.io.IOException;
+import java.util.prefs.Preferences;
 
 public class MainApp extends Application {
 
     private Stage primaryStage;
     private BorderPane rootLayout;
+
+    private FileUtil fileUtil = new FileUtil();
 
     /**
      * The data as an observable list of Persons.
@@ -64,9 +69,23 @@ public class MainApp extends Application {
             // Show the scene containing the root layout.
             Scene scene = new Scene(this.rootLayout);
             this.primaryStage.setScene(scene);
+
+            // Give the controller access to the main app.
+            RootLayoutController controller = loader.getController();
+            controller.setMainApp(this);
+
             this.primaryStage.show();
         } catch (IOException e) {
             e.printStackTrace();
+        }
+
+        // try to load last opened file
+        File file = fileUtil.getPersonFilePath();
+        if (file != null) {
+            fileUtil.loadPersonDataFromFile(file, this.getPersonData());
+            this.primaryStage.setTitle("AddressApp - " + file.getName());
+        } else {
+            this.primaryStage.setTitle("AddressApp");
         }
     }
 
@@ -86,8 +105,19 @@ public class MainApp extends Application {
             // Give the controller access to the main app.
             PersonOverviewController controller = loader.getController();
             controller.setMainApp(this);
+
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    // ainult salvestab/loeb eelistuse
+    public void setPersonFilePath(File file) {
+        fileUtil.setPersonFilePath(file);
+        if (file != null) {
+            this.primaryStage.setTitle("AddressApp - " + file.getName());
+        } else {
+            this.primaryStage.setTitle("AddressApp");
         }
     }
 
@@ -108,11 +138,10 @@ public class MainApp extends Application {
 
             // Create the dialog Stage.
             Stage dialogStage = new Stage();
-
             if(person.getFirstName() == null && person.getLastName() == null) {
                 dialogStage.setTitle("Add New Person");
             } else {
-                dialogStage.setTitle("Edit Person Details");
+                dialogStage.setTitle("Edit Person");
             }
             dialogStage.initModality(Modality.WINDOW_MODAL);
             dialogStage.initOwner(primaryStage);
@@ -139,13 +168,11 @@ public class MainApp extends Application {
         this.primaryStage = primaryStage;
         this.primaryStage.setTitle("AddressApp");
 
-        this.primaryStage.getIcons().add(new Image(getClass().getResource
-                ("images/Logo.png").toExternalForm()));
+        // Set the application icon.
+        this.primaryStage.getIcons().add(new Image(getClass().getResource("images/address_book_icon.png").toExternalForm()));
 
         this.initRootLayout();
         this.showPersonOverview();
-
-        System.out.println(this.getPersonData());
     }
 
     public static void main(String[] args) {
